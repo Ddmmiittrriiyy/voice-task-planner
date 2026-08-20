@@ -64,6 +64,9 @@ const LANGS = {
     prep: 'во?', // "в"/"во"
     meridiem: {'утра':'am','дня':'pm','вечера':'pm','ночи':'am'},
     meridiemWords: 'утра|дня|вечера|ночи',
+    hourWords: {'час':1,'часу':1,'один':1,'одну':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12},
+    hourWordsList: 'час|часу|один|одну|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать',
+    hourNoun: 'час(?:а|ов)?',
   },
   uk: {
     code: 'uk-UA', label: 'UA',
@@ -79,6 +82,9 @@ const LANGS = {
     prep: '(?:об|о)',
     meridiem: {'ранку':'am','дня':'pm','вечора':'pm','ночі':'am'},
     meridiemWords: 'ранку|дня|вечора|ночі',
+    hourWords: {'одна':1,'першій':1,'першу':1,'два':2,'дві':2,'другій':2,'три':3,'третій':3,'чотири':4,'четвертій':4,'пʼять':5,"п'ять":5,'п’ять':5,'шість':6,'сім':7,'вісім':8,"дев'ять":9,'дев’ять':9,'десять':10,'одинадцять':11,'дванадцять':12},
+    hourWordsList: "одна|першій|першу|два|дві|другій|три|третій|чотири|четвертій|п['’ʼ]?ять|шість|сім|вісім|дев['’]?ять|десять|одинадцять|дванадцять",
+    hourNoun: 'годин(?:а|и|і|у)?',
   },
   en: {
     code: 'en-US', label: 'EN',
@@ -93,6 +99,9 @@ const LANGS = {
     today:'today', tomorrow:'tomorrow', dayAfterTomorrow:'day after tomorrow',
     prep: 'at',
     meridiemWords: 'am|pm',
+    hourWords: {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12},
+    hourWordsList: 'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve',
+    hourNoun: "(?:o(?:'|\\s*)clock|hours?)",
   }
 };
 
@@ -104,6 +113,11 @@ function to24h(hour, pmOrAm){
   hour = hour % 12;
   if(pmOrAm === 'pm') hour += 12;
   return hour;
+}
+function parseHourToken(token, cfg){
+  if(/^\d+$/.test(token)) return parseInt(token, 10);
+  const normalized = token.toLowerCase().replace(/ʼ/g, "'").replace(/’/g, "'");
+  return cfg.hourWords && cfg.hourWords[normalized];
 }
 
 // Возвращает {iso, matchedText} или null. Не придумывает дату сама — только распознаёт явные указания.
@@ -184,13 +198,18 @@ function extractTime(text, cfg){
       return { hhmm: `${pad2(h)}:${pad2(mm)}`, matchedText: m[0] };
     }
   }
-  // б) "10 утра" / "6 pm" / "9am" — слово или суффикс am/pm сразу после числа
-  m = text.match(wb('(?:' + cfg.prep + '\\s*)?(\\d{1,2})\\s*(' + cfg.meridiemWords + ')'));
+  // б) "2 часа дня" / "два часа дня" / "6 pm" — с частью суток.
+  const hourToken = '(\\d{1,2}|' + cfg.hourWordsList + ')';
+  const optionalHourNoun = cfg.hourNoun ? '(?:\\s+' + cfg.hourNoun + ')?' : '';
+  m = text.match(wb('(?:' + cfg.prep + '\\s*)?' + hourToken + optionalHourNoun + '\\s*(' + cfg.meridiemWords + ')'));
   if(m){
     const word = m[2].toLowerCase();
     const kind = cfg.meridiem ? cfg.meridiem[word] : word; // ru/uk словарь -> am/pm, en уже am/pm
-    const h = to24h(parseInt(m[1],10), kind);
-    return { hhmm: `${pad2(h)}:00`, matchedText: m[0] };
+    const rawHour = parseHourToken(m[1], cfg);
+    if(rawHour >= 1 && rawHour <= 12){
+      const h = to24h(rawHour, kind);
+      return { hhmm: `${pad2(h)}:00`, matchedText: m[0] };
+    }
   }
   // в) "в 9" / "at 10" — только с предлогом, чтобы не путать с другими числами
   m = text.match(wb(cfg.prep + '\\s+(\\d{1,2})'));
