@@ -608,6 +608,13 @@ function submitPhrase(raw){
   addTask(parsed);
   showToast(parsed.date ? t('taskAdded') : t('taskAddedNoDate'));
 }
+function submitVoicePhrase(raw){
+  try{
+    submitPhrase(raw);
+  }finally{
+    textInput.value = '';
+  }
+}
 sendBtn.onclick = () => { submitPhrase(textInput.value); textInput.value=''; };
 textInput.addEventListener('keydown', e=>{
   if(e.key === 'Enter'){ submitPhrase(textInput.value); textInput.value=''; }
@@ -635,7 +642,8 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
   // WebView не поддерживает Web Speech API — см. MainActivity.java)
   window.startVoiceResult = function(text){
     micBtn.classList.remove('listening');
-    if(text){ textInput.value = text; submitPhrase(text); textInput.value = ''; }
+    if(text) submitVoicePhrase(text);
+    else textInput.value = '';
   };
   window.startVoiceError = function(){
     micBtn.classList.remove('listening');
@@ -657,9 +665,7 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
     recognition.onerror = () => { micBtn.classList.remove('listening'); showToast(t('voiceError')); };
     recognition.onresult = (e) => {
       const said = e.results[0][0].transcript;
-      textInput.value = said;
-      submitPhrase(said);
-      textInput.value = '';
+      submitVoicePhrase(said);
     };
     micBtn.onclick = () => {
       recognition.lang = currentLangCfg().code;
