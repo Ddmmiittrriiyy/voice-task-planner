@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voicetasks-pwa-v5';
+const CACHE_NAME = 'voicetasks-pwa-v6';
 const APP_ASSETS = [
   './',
   './index.html',

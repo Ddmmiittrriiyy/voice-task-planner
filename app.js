@@ -601,6 +601,23 @@ document.querySelectorAll('.tab').forEach(btn=>{
 /* ---------- Ввод текста ---------- */
 const textInput = document.getElementById('textInput');
 const sendBtn = document.getElementById('sendBtn');
+let voiceInputFallbackActive = false;
+let voiceInputFallbackTimer = null;
+let voiceInputFallbackOffTimer = null;
+
+function armVoiceInputFallback(){
+  voiceInputFallbackActive = true;
+  clearTimeout(voiceInputFallbackTimer);
+  clearTimeout(voiceInputFallbackOffTimer);
+  voiceInputFallbackOffTimer = setTimeout(() => {
+    voiceInputFallbackActive = false;
+  }, 15000);
+}
+function stopVoiceInputFallback(){
+  voiceInputFallbackActive = false;
+  clearTimeout(voiceInputFallbackTimer);
+  clearTimeout(voiceInputFallbackOffTimer);
+}
 
 function submitPhrase(raw){
   if(!raw || !raw.trim()) return;
@@ -612,12 +629,22 @@ function submitVoicePhrase(raw){
   try{
     submitPhrase(raw);
   }finally{
+    stopVoiceInputFallback();
     textInput.value = '';
   }
 }
 sendBtn.onclick = () => { submitPhrase(textInput.value); textInput.value=''; };
 textInput.addEventListener('keydown', e=>{
   if(e.key === 'Enter'){ submitPhrase(textInput.value); textInput.value=''; }
+});
+textInput.addEventListener('input', () => {
+  if(!voiceInputFallbackActive || !textInput.value.trim()) return;
+  clearTimeout(voiceInputFallbackTimer);
+  voiceInputFallbackTimer = setTimeout(() => {
+    if(voiceInputFallbackActive && textInput.value.trim()){
+      submitVoicePhrase(textInput.value);
+    }
+  }, 650);
 });
 
 /* ---------- Переключатель языка ---------- */
@@ -647,9 +674,12 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
   };
   window.startVoiceError = function(){
     micBtn.classList.remove('listening');
+    stopVoiceInputFallback();
     showToast(t('voiceError'));
   };
   micBtn.onclick = () => {
+    textInput.value = '';
+    armVoiceInputFallback();
     micBtn.classList.add('listening');
     window.AndroidBridge.startListening(currentLangCfg().code);
   };
@@ -662,12 +692,14 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
     recognition.maxAlternatives = 1;
     recognition.onstart = () => micBtn.classList.add('listening');
     recognition.onend = () => micBtn.classList.remove('listening');
-    recognition.onerror = () => { micBtn.classList.remove('listening'); showToast(t('voiceError')); };
+    recognition.onerror = () => { micBtn.classList.remove('listening'); stopVoiceInputFallback(); showToast(t('voiceError')); };
     recognition.onresult = (e) => {
       const said = e.results[0][0].transcript;
       submitVoicePhrase(said);
     };
     micBtn.onclick = () => {
+      textInput.value = '';
+      armVoiceInputFallback();
       recognition.lang = currentLangCfg().code;
       try{ recognition.start(); }catch(e){}
     };
