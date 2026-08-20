@@ -1,7 +1,7 @@
 {
-  "name": "Голосовые задачи",
-  "short_name": "Задачи",
-  "description": "Личное приложение для быстрого внесения задач голосом или текстом.",
+  "name": "VoiceTasks",
+  "short_name": "VoiceTasks",
+  "description": "A personal task app for quickly adding tasks by voice or text.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

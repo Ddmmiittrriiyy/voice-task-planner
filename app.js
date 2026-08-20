@@ -29,6 +29,132 @@ function setLang(code){
   localStorage.setItem(LANG_KEY, code);
 }
 
+function detectInitialLang(){
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  if(browserLang.startsWith('uk')) return 'uk';
+  if(browserLang.startsWith('en')) return 'en';
+  return 'ru';
+}
+if(!localStorage.getItem(LANG_KEY)){
+  setLang(detectInitialLang());
+}
+
+const UI_TEXT = {
+  ru: {
+    appTitle:'Голосовые задачи',
+    activeTab:'Активные',
+    doneTab:'Выполненные',
+    empty:'Пока пусто. Скажите или напишите задачу ниже.',
+    voiceInput:'Голосовой ввод',
+    add:'Добавить',
+    editTask:'Редактировать задачу',
+    textLabel:'Текст',
+    dateLabel:'Дата',
+    timeLabel:'Время (необязательно)',
+    cancel:'Отмена',
+    save:'Сохранить',
+    deleteQuestion:'Удалить задачу?',
+    deleteWarning:'Действие нельзя отменить.',
+    delete:'Удалить',
+    menu:'Меню',
+    exportFile:'Экспорт в файл',
+    importFile:'Импорт из файла',
+    noTime:'без времени',
+    edit:'Редактировать',
+    returnTask:'Вернуть',
+    done:'Выполнено',
+    untitled:'Без названия',
+    taskAdded:'Задача добавлена',
+    taskAddedNoDate:'Добавлено — уточните дату вручную',
+    voiceError:'Не удалось распознать голос',
+    voiceUnsupported:'Голосовой ввод не поддерживается этим браузером',
+    importDone:'Импорт завершён',
+    importError:'Не удалось прочитать файл',
+    placeholder:'Например: завтра в 10 утра гараж'
+  },
+  uk: {
+    appTitle:'Голосові завдання',
+    activeTab:'Активні',
+    doneTab:'Виконані',
+    empty:'Поки порожньо. Скажіть або напишіть завдання нижче.',
+    voiceInput:'Голосове введення',
+    add:'Додати',
+    editTask:'Редагувати завдання',
+    textLabel:'Текст',
+    dateLabel:'Дата',
+    timeLabel:'Час (необов’язково)',
+    cancel:'Скасувати',
+    save:'Зберегти',
+    deleteQuestion:'Видалити завдання?',
+    deleteWarning:'Цю дію не можна скасувати.',
+    delete:'Видалити',
+    menu:'Меню',
+    exportFile:'Експорт у файл',
+    importFile:'Імпорт із файлу',
+    noTime:'без часу',
+    edit:'Редагувати',
+    returnTask:'Повернути',
+    done:'Виконано',
+    untitled:'Без назви',
+    taskAdded:'Завдання додано',
+    taskAddedNoDate:'Додано — уточніть дату вручну',
+    voiceError:'Не вдалося розпізнати голос',
+    voiceUnsupported:'Голосове введення не підтримується цим браузером',
+    importDone:'Імпорт завершено',
+    importError:'Не вдалося прочитати файл',
+    placeholder:'Наприклад: завтра о 10 ранку гараж'
+  },
+  en: {
+    appTitle:'VoiceTasks',
+    activeTab:'Active',
+    doneTab:'Completed',
+    empty:'Nothing here yet. Say or type a task below.',
+    voiceInput:'Voice input',
+    add:'Add',
+    editTask:'Edit task',
+    textLabel:'Text',
+    dateLabel:'Date',
+    timeLabel:'Time (optional)',
+    cancel:'Cancel',
+    save:'Save',
+    deleteQuestion:'Delete task?',
+    deleteWarning:'This action cannot be undone.',
+    delete:'Delete',
+    menu:'Menu',
+    exportFile:'Export to file',
+    importFile:'Import from file',
+    noTime:'no time',
+    edit:'Edit',
+    returnTask:'Restore',
+    done:'Done',
+    untitled:'Untitled',
+    taskAdded:'Task added',
+    taskAddedNoDate:'Added — set the date manually if needed',
+    voiceError:'Could not recognize speech',
+    voiceUnsupported:'Voice input is not supported by this browser',
+    importDone:'Import complete',
+    importError:'Could not read the file',
+    placeholder:'Example: tomorrow at two pm garage'
+  }
+};
+function t(key){
+  const lang = getLang();
+  return (UI_TEXT[lang] && UI_TEXT[lang][key]) || UI_TEXT.ru[key] || key;
+}
+function applyStaticTexts(){
+  document.documentElement.lang = getLang();
+  document.title = t('appTitle');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+}
+
 /* ---------- Разбор фразы: дата / время / текст (RU / UK / EN) ---------- */
 
 // В JS \b не распознаёт кириллицу как "словесный" символ, поэтому границы слов
@@ -62,11 +188,12 @@ const LANGS = {
     weekdayPrep: 'во?',
     today:'сегодня', tomorrow:'завтра', dayAfterTomorrow:'послезавтра',
     prep: 'во?', // "в"/"во"
-    meridiem: {'утра':'am','дня':'pm','вечера':'pm','ночи':'am'},
-    meridiemWords: 'утра|дня|вечера|ночи',
+    meridiem: {'утра':'am','утром':'am','дня':'pm','днем':'pm','днём':'pm','после обеда':'pm','вечера':'pm','вечером':'pm','ночи':'am','ночью':'am'},
+    meridiemWords: 'после\\s+обеда|утра|утром|дня|днем|днём|вечера|вечером|ночи|ночью',
     hourWords: {'час':1,'часу':1,'один':1,'одну':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12},
     hourWordsList: 'час|часу|один|одну|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать',
     hourNoun: 'час(?:а|ов)?',
+    ambiguousAfternoonMax: 4,
   },
   uk: {
     code: 'uk-UA', label: 'UA',
@@ -79,12 +206,13 @@ const LANGS = {
     weekdayCharClass: "[а-яіїєґ'’]",
     weekdayPrep: '(?:у|в)',
     today:'сьогодні', tomorrow:'завтра', dayAfterTomorrow:'післязавтра',
-    prep: '(?:об|о)',
-    meridiem: {'ранку':'am','дня':'pm','вечора':'pm','ночі':'am'},
-    meridiemWords: 'ранку|дня|вечора|ночі',
+    prep: '(?:об|о|у|в)',
+    meridiem: {'ранку':'am','зранку':'am','дня':'pm','вдень':'pm','після обіду':'pm','вечора':'pm','увечері':'pm','ввечері':'pm','ночі':'am','вночі':'am'},
+    meridiemWords: 'після\\s+обіду|ранку|зранку|дня|вдень|вечора|увечері|ввечері|ночі|вночі',
     hourWords: {'одна':1,'першій':1,'першу':1,'два':2,'дві':2,'другій':2,'три':3,'третій':3,'чотири':4,'четвертій':4,'пʼять':5,"п'ять":5,'п’ять':5,'шість':6,'сім':7,'вісім':8,"дев'ять":9,'дев’ять':9,'десять':10,'одинадцять':11,'дванадцять':12},
     hourWordsList: "одна|першій|першу|два|дві|другій|три|третій|чотири|четвертій|п['’ʼ]?ять|шість|сім|вісім|дев['’]?ять|десять|одинадцять|дванадцять",
     hourNoun: 'годин(?:а|и|і|у)?',
+    ambiguousAfternoonMax: 4,
   },
   en: {
     code: 'en-US', label: 'EN',
@@ -98,10 +226,12 @@ const LANGS = {
     weekdayPrep: 'on',
     today:'today', tomorrow:'tomorrow', dayAfterTomorrow:'day after tomorrow',
     prep: 'at',
-    meridiemWords: 'am|pm',
+    meridiem: {'am':'am','pm':'pm','in the morning':'am','morning':'am','in the afternoon':'pm','afternoon':'pm','in the evening':'pm','evening':'pm','at night':'am','night':'am'},
+    meridiemWords: 'in\\s+the\\s+morning|in\\s+the\\s+afternoon|in\\s+the\\s+evening|at\\s+night|morning|afternoon|evening|night|am|pm',
     hourWords: {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12},
     hourWordsList: 'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve',
     hourNoun: "(?:o(?:'|\\s*)clock|hours?)",
+    ambiguousAfternoonMax: 4,
   }
 };
 
@@ -114,10 +244,19 @@ function to24h(hour, pmOrAm){
   if(pmOrAm === 'pm') hour += 12;
   return hour;
 }
+function normalizeSpeechToken(token){
+  return token.toLowerCase().replace(/ʼ/g, "'").replace(/’/g, "'").replace(/\s+/g, ' ').trim();
+}
 function parseHourToken(token, cfg){
   if(/^\d+$/.test(token)) return parseInt(token, 10);
-  const normalized = token.toLowerCase().replace(/ʼ/g, "'").replace(/’/g, "'");
+  const normalized = normalizeSpeechToken(token);
   return cfg.hourWords && cfg.hourWords[normalized];
+}
+function applyPlanningHourHeuristic(hour, cfg, rawToken){
+  if(hour >= 1 && hour <= (cfg.ambiguousAfternoonMax || 0) && !/^0/.test(String(rawToken))){
+    return hour + 12;
+  }
+  return hour;
 }
 
 // Возвращает {iso, matchedText} или null. Не придумывает дату сама — только распознаёт явные указания.
@@ -195,6 +334,7 @@ function extractTime(text, cfg){
     let h = parseInt(m[1],10), mm = parseInt(m[2],10);
     if(h<=23 && mm<=59){
       if(m[3]) h = to24h(h, m[3].toLowerCase());
+      else h = applyPlanningHourHeuristic(h, cfg, m[1]);
       return { hhmm: `${pad2(h)}:${pad2(mm)}`, matchedText: m[0] };
     }
   }
@@ -203,7 +343,7 @@ function extractTime(text, cfg){
   const optionalHourNoun = cfg.hourNoun ? '(?:\\s+' + cfg.hourNoun + ')?' : '';
   m = text.match(wb('(?:' + cfg.prep + '\\s*)?' + hourToken + optionalHourNoun + '\\s*(' + cfg.meridiemWords + ')'));
   if(m){
-    const word = m[2].toLowerCase();
+    const word = normalizeSpeechToken(m[2]);
     const kind = cfg.meridiem ? cfg.meridiem[word] : word; // ru/uk словарь -> am/pm, en уже am/pm
     const rawHour = parseHourToken(m[1], cfg);
     if(rawHour >= 1 && rawHour <= 12){
@@ -211,11 +351,14 @@ function extractTime(text, cfg){
       return { hhmm: `${pad2(h)}:00`, matchedText: m[0] };
     }
   }
-  // в) "в 9" / "at 10" — только с предлогом, чтобы не путать с другими числами
-  m = text.match(wb(cfg.prep + '\\s+(\\d{1,2})'));
+  // в) "в 9" / "в два" / "at two" — только с предлогом, чтобы не путать с другими числами.
+  m = text.match(wb(cfg.prep + '\\s+' + hourToken));
   if(m){
-    const h = parseInt(m[1],10);
-    if(h<=23) return { hhmm: `${pad2(h)}:00`, matchedText: m[0] };
+    let h = parseHourToken(m[1], cfg);
+    if(h<=23){
+      h = applyPlanningHourHeuristic(h, cfg, m[1]);
+      return { hhmm: `${pad2(h)}:00`, matchedText: m[0] };
+    }
   }
   return null;
 }
@@ -364,7 +507,7 @@ function renderCard(t){
 
   const time = document.createElement('div');
   time.className = 'taskTime' + (t.time ? '' : ' notime');
-  time.textContent = t.time ? formatTimeDisplay(t.time) : 'без времени';
+  time.textContent = t.time ? formatTimeDisplay(t.time) : t('noTime');
   body.appendChild(time);
 
   const text = document.createElement('div');
@@ -376,23 +519,23 @@ function renderCard(t){
   actions.className = 'taskActions';
 
   const editBtn = document.createElement('button');
-  editBtn.textContent = 'Редактировать';
+  editBtn.textContent = t('edit');
   editBtn.onclick = () => openEdit(t);
   actions.appendChild(editBtn);
 
   const doneBtn = document.createElement('button');
   if(t.done){
-    doneBtn.textContent = 'Вернуть';
+    doneBtn.textContent = t('returnTask');
     doneBtn.className = 'returnA';
   }else{
-    doneBtn.textContent = 'Выполнено';
+    doneBtn.textContent = t('done');
     doneBtn.className = 'doneA';
   }
   doneBtn.onclick = () => toggleDone(t.id);
   actions.appendChild(doneBtn);
 
   const delBtn = document.createElement('button');
-  delBtn.textContent = 'Удалить';
+  delBtn.textContent = t('delete');
   delBtn.className = 'deleteA';
   delBtn.onclick = () => openDeleteConfirm(t.id);
   actions.appendChild(delBtn);
@@ -413,7 +556,7 @@ let editingId = null;
 
 function openEdit(t){
   editingId = t.id;
-  modalTitle.textContent = 'Редактировать задачу';
+  modalTitle.textContent = t('editTask');
   editText.value = t.text;
   editDate.value = t.date || '';
   editTime.value = t.time || '';
@@ -425,7 +568,7 @@ document.getElementById('modalSave').onclick = () => {
   updateTask(editingId, {
     date: editDate.value || null,
     time: editTime.value || null,
-    text: editText.value.trim() || 'Без названия'
+    text: editText.value.trim() || t('untitled')
   });
   modalOverlay.classList.add('hidden');
   editingId = null;
@@ -463,25 +606,20 @@ function submitPhrase(raw){
   if(!raw || !raw.trim()) return;
   const parsed = parsePhrase(raw);
   addTask(parsed);
-  showToast(parsed.date ? 'Задача добавлена' : 'Добавлено — уточните дату вручную');
+  showToast(parsed.date ? t('taskAdded') : t('taskAddedNoDate'));
 }
 sendBtn.onclick = () => { submitPhrase(textInput.value); textInput.value=''; };
 textInput.addEventListener('keydown', e=>{
   if(e.key === 'Enter'){ submitPhrase(textInput.value); textInput.value=''; }
 });
 
-const PLACEHOLDERS = {
-  ru: 'Например: завтра в 10 утра гараж',
-  uk: 'Наприклад: завтра о 10 ранку гараж',
-  en: 'e.g. tomorrow at 10am garage',
-};
-
 /* ---------- Переключатель языка ---------- */
 const langButtons = document.querySelectorAll('.langBtn');
 function applyLangUI(){
   const lang = getLang();
+  applyStaticTexts();
   langButtons.forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-  textInput.placeholder = PLACEHOLDERS[lang] || PLACEHOLDERS.ru;
+  textInput.placeholder = t('placeholder');
   if(recognition) recognition.lang = currentLangCfg().code;
 }
 langButtons.forEach(btn=>{
@@ -501,7 +639,7 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
   };
   window.startVoiceError = function(){
     micBtn.classList.remove('listening');
-    showToast('Не удалось распознать голос');
+    showToast(t('voiceError'));
   };
   micBtn.onclick = () => {
     micBtn.classList.add('listening');
@@ -516,7 +654,7 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
     recognition.maxAlternatives = 1;
     recognition.onstart = () => micBtn.classList.add('listening');
     recognition.onend = () => micBtn.classList.remove('listening');
-    recognition.onerror = () => { micBtn.classList.remove('listening'); showToast('Не удалось распознать голос'); };
+    recognition.onerror = () => { micBtn.classList.remove('listening'); showToast(t('voiceError')); };
     recognition.onresult = (e) => {
       const said = e.results[0][0].transcript;
       textInput.value = said;
@@ -528,7 +666,7 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
       try{ recognition.start(); }catch(e){}
     };
   }else{
-    micBtn.onclick = () => showToast('Голосовой ввод не поддерживается этим браузером');
+    micBtn.onclick = () => showToast(t('voiceUnsupported'));
   }
 }
 applyLangUI();
@@ -579,13 +717,13 @@ function mergeImportedTasks(rawJson){
   tasks = Array.from(byId.values());
   saveTasks(tasks);
   render();
-  showToast('Импорт завершён');
+  showToast(t('importDone'));
 }
 window.importTasksFromAndroid = function(rawJson){
   try{
     mergeImportedTasks(rawJson);
   }catch(e){
-    showToast('Не удалось прочитать файл');
+    showToast(t('importError'));
   }
 };
 document.getElementById('importBtn').onclick = () => {
@@ -604,7 +742,7 @@ importFile.onchange = () => {
     try{
       mergeImportedTasks(reader.result);
     }catch(e){
-      showToast('Не удалось прочитать файл');
+      showToast(t('importError'));
     }
   };
   reader.readAsText(file);
