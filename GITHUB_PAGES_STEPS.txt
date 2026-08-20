@@ -1,0 +1,30 @@
+Quick GitHub Pages setup
+
+1. Create a new GitHub repository:
+   VoiceTasks
+
+2. Upload these files to the repository root:
+   index.html
+   style.css
+   app.js
+   manifest.json
+   sw.js
+   icon-192.png
+   icon-512.png
+   .nojekyll
+   README.md
+
+3. Open repository Settings.
+
+4. Open Pages.
+
+5. Set:
+   Source: Deploy from a branch
+   Branch: main
+   Folder: /root
+
+6. Save and wait for GitHub Pages to publish.
+
+7. Open the Pages URL on Android in Chrome.
+
+8. Chrome menu > Add to Home screen / Install app.
