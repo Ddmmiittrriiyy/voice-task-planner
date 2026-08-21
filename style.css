@@ -103,6 +103,12 @@ body{
   gap:10px;
 }
 .taskCard.done{opacity:.55;}
+.taskCard.overdue{
+  border-bottom:1px dashed var(--danger);
+}
+.taskCard.overdue .taskTime{
+  color:var(--danger);
+}
 .doneMark{
   flex:0 0 auto;
   width:24px;height:24px;

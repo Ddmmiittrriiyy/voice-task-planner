@@ -354,9 +354,15 @@ function formatTimeDisplay(hhmm){
   return hhmm.replace(':', '-');
 }
 
+function isOverdue(t){
+  if(t.done || !t.date || !t.time) return false;
+  const dueAt = new Date(t.date + 'T' + t.time + ':00');
+  return !Number.isNaN(dueAt.getTime()) && dueAt < new Date();
+}
+
 function renderCard(t){
   const card = document.createElement('div');
-  card.className = 'taskCard' + (t.done ? ' done' : '');
+  card.className = 'taskCard' + (t.done ? ' done' : '') + (isOverdue(t) ? ' overdue' : '');
 
   const mark = document.createElement('div');
   mark.className = 'doneMark';
