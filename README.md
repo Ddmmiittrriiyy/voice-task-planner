@@ -65,11 +65,6 @@ https://USERNAME.github.io/VoiceTasks/
 Open that link in Chrome on Android and install the PWA.
 
 ## Notes
-## License
-
-Copyright (c) 2026 Dmytro. All rights reserved.
-
-This project is published for personal demonstration and use. No permission is granted to copy, modify, distribute, sublicense, or reuse the source code or assets without written permission.
 
 The APK version and the PWA version are different delivery formats for the same app idea.
 
