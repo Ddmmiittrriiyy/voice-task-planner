@@ -12,12 +12,14 @@ class AlarmService:Service(){
     companion object{
         const val ACTION_START="com.voicetasks.two.ALARM_START"
         const val ACTION_STOP="com.voicetasks.two.ALARM_STOP"
+        const val ACTION_CANCEL_ID="com.voicetasks.two.ALARM_CANCEL_ID"
         const val EXTRA_ID="id"
         const val EXTRA_TEXT="text"
         private const val CHANNEL_ID="voice_tasks2_alarm"
         private const val NOTIFICATION_ID=7101
     }
 
+    private var activeTaskId:String?=null
     private var player:MediaPlayer?=null
     private var vibrator:Vibrator?=null
     private var wakeLock:PowerManager.WakeLock?=null
@@ -33,11 +35,16 @@ class AlarmService:Service(){
                 stopAlarm()
                 return START_NOT_STICKY
             }
+            ACTION_CANCEL_ID -> {
+                if(intent.getStringExtra(EXTRA_ID)==activeTaskId) stopAlarm()
+                return START_NOT_STICKY
+            }
         }
 
         val id=intent?.getStringExtra(EXTRA_ID)?:""
         val text=intent?.getStringExtra(EXTRA_TEXT)?:"Задача"
 
+        activeTaskId=id
         acquireWakeLock()
         startForeground(NOTIFICATION_ID,buildAlarmNotification(id,text))
         startAlarmSound()
@@ -147,6 +154,7 @@ class AlarmService:Service(){
     }
 
     private fun stopAlarm(){
+        activeTaskId=null
         vibrator?.cancel()
         vibrator=null
         try{ player?.stop() }catch(_:Exception){}
@@ -159,7 +167,14 @@ class AlarmService:Service(){
     }
 
     override fun onDestroy(){
-        stopAlarm()
+        activeTaskId=null
+        vibrator?.cancel()
+        vibrator=null
+        try{ player?.stop() }catch(_:Exception){}
+        player?.release()
+        player=null
+        if(wakeLock?.isHeld==true) wakeLock?.release()
+        wakeLock=null
         super.onDestroy()
     }
 
