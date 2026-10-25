@@ -11,7 +11,10 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.webkit.WebView
-import android.webkit.WebViewClient
+import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewClientCompat
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.widget.Toast
 import org.json.JSONObject
 import java.util.Locale
@@ -37,7 +40,14 @@ class MainActivity:Activity(){
         web.settings.javaScriptEnabled=true
         web.settings.domStorageEnabled=true
         web.settings.mediaPlaybackRequiresUserGesture=false
-        web.webViewClient=WebViewClient()
+        val loader=WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
+        web.webViewClient=object:WebViewClientCompat(){
+            override fun shouldInterceptRequest(view:WebView, request:WebResourceRequest):WebResourceResponse? =
+                loader.shouldInterceptRequest(request.url)
+        }
+        web.settings.allowFileAccess=false
         web.addJavascriptInterface(AndroidBridge(this),"AndroidBridge")
 
         if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
@@ -48,7 +58,7 @@ class MainActivity:Activity(){
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),101)
         }
 
-        web.loadUrl("https://ddmmiittrriiyy.github.io/Voice-Tasks/")
+        web.loadUrl("https://appassets.androidplatform.net/assets/index.html")
     }
 
     fun startVoiceRecognition(language:String){

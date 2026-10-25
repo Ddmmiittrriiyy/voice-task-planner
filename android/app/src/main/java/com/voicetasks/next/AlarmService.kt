@@ -10,11 +10,11 @@ import android.os.*
 
 class AlarmService:Service(){
     companion object{
-        const val ACTION_START="com.voicetasks.next.ALARM_START"
-        const val ACTION_STOP="com.voicetasks.next.ALARM_STOP"
+        const val ACTION_START="com.voicetasks.two.ALARM_START"
+        const val ACTION_STOP="com.voicetasks.two.ALARM_STOP"
         const val EXTRA_ID="id"
         const val EXTRA_TEXT="text"
-        private const val CHANNEL_ID="voice_tasks_alarm"
+        private const val CHANNEL_ID="voice_tasks2_alarm"
         private const val NOTIFICATION_ID=7101
     }
 

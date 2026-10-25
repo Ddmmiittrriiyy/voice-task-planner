@@ -8,6 +8,7 @@ class AlarmReceiver:BroadcastReceiver(){
         val id=i.getStringExtra("id")?:""
         val text=i.getStringExtra("text")?:"Задача"
 
+        if(id.isBlank() || AlarmStore.all(c).none { it.id==id }) return
         AlarmStore.remove(c,id)
         AlarmStore.markTriggered(c,id)
 

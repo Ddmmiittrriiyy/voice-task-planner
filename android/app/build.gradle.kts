@@ -8,11 +8,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.voicetasks.next"
+        applicationId = "com.voicetasks.two"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 1
+        versionName = "2.0.0-dev1"
     }
 
     compileOptions {
@@ -23,4 +23,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+
+dependencies {
+    implementation("androidx.webkit:webkit:1.12.1")
 }

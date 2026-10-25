@@ -2,9 +2,9 @@
    Хранение: localStorage, ключ voiceTasks_v1
    Приложение не даёт советов и не принимает решений — только выполняет команды. */
 
-const STORAGE_KEY = 'voiceTasks_v1';
-const THEME_KEY = 'voiceTasks_theme_v1';
-const PLANNER_VERSION = '0.1.3-next.2';
+const STORAGE_KEY = 'voiceTasks2_v1';
+const THEME_KEY = 'voiceTasks2_theme_v1';
+const PLANNER_VERSION = '2.0.0-dev1';
 function getAndroidBridge(){ return (window.AndroidBridge && typeof window.AndroidBridge === 'object') ? window.AndroidBridge : null; }
 function hasNativeAlarm(){ const b=getAndroidBridge(); return !!(b && (typeof b.scheduleAlarm==='function' || typeof b.setAlarm==='function')); }
 function getAndroidCoreVersion(){ const b=getAndroidBridge(); if(!b) return null; try{ if(typeof b.getCoreVersion==='function') return String(b.getCoreVersion()||'').trim()||null; }catch(e){} return null; }
@@ -26,7 +26,7 @@ function uid(){
 }
 
 /* ---------- Язык (RU / UK / EN) ---------- */
-const LANG_KEY = 'voiceLang_v1';
+const LANG_KEY = 'voiceLang2_v1';
 function getLang(){
   return localStorage.getItem(LANG_KEY) || 'ru';
 }
@@ -342,7 +342,7 @@ function parsePhrase(raw){
   if(timeRes) working = working.replace(timeRes.matchedText, ' ');
   const title = cleanupTitle(working);
   return {
-    date: dateRes ? dateRes.iso : null,
+    date: dateRes ? dateRes.iso : toISODate(new Date()),
     time: timeRes ? timeRes.hhmm : null,
     text: title || raw.trim()
   };
@@ -375,6 +375,9 @@ function deleteTask(id){
 function toggleDone(id){
   const t = tasks.find(t=>t.id===id);
   if(!t) return;
+  cancelNativeAlarm(t);
+  t.alarmEnabled=false;
+  t.alarmTriggered=false;
   t.done = !t.done;
   saveTasks(tasks);
   render();
@@ -481,7 +484,7 @@ function render(options={}){
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
       if(options.focusTaskId){
-        focusNewTask(options.focusTaskId);
+        focusNewTask(options.focusTaskId,options.centerEdited===true);
       }else if(!initialPositionDone && currentView === 'active'){
         initialPositionDone = true;
         focusCurrentTime();
@@ -492,7 +495,9 @@ function render(options={}){
 
 function currentTimeLabel(){
   const now = new Date();
-  return `Сейчас ${pad2(now.getHours())}-${pad2(now.getMinutes())}`;
+  const lc={ru:'ru-RU',uk:'uk-UA',en:'en-GB'};
+  const wd=new Intl.DateTimeFormat(lc[getLang()]||'ru-RU',{weekday:'short'}).format(now);
+  return `${wd} · ${pad2(now.getDate())}.${pad2(now.getMonth()+1)} · Сейчас ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 }
 
 function renderCurrentTimeMarker(){
@@ -569,13 +574,13 @@ function focusCurrentTime(){
   if(futureGroup) scrollElementInList(futureGroup, 0.50, 'auto');
 }
 
-function focusNewTask(taskId){
+function focusNewTask(taskId,centerEdited=false){
   const card = listEl.querySelector(`[data-task-id="${taskId}"]`);
   if(!card) return;
 
   // Пользователь интуитивно ищет только что добавленную запись ниже середины экрана.
   // Поэтому ставим её примерно на 68% высоты рабочей области, не меняя сортировку.
-  scrollElementInList(card, 0.68, 'smooth');
+  scrollElementInList(card, centerEdited ? 0.50 : 0.68, 'smooth');
   card.classList.add('justAdded');
   setTimeout(()=>card.classList.remove('justAdded'), 1900);
 }
@@ -733,7 +738,7 @@ document.getElementById('modalSave').onclick=()=>{
 
   saveTasks(tasks);
   if(t.alarmEnabled)scheduleNativeAlarm(t);
-  render();
+  render({focusTaskId:t.id,centerEdited:true});
   modalOverlay.classList.add('hidden');
   editingId=null;
 };
@@ -827,9 +832,11 @@ if(window.AndroidBridge && window.AndroidBridge.startListening){
   window.startVoiceError = function(code){
     micBtn.classList.remove('listening');
     if(typeof code === 'number'){
-      showToast('Не удалось распознать голос (' + code + ')');
+      showToast('Голос недоступен (' + code + '). Введите задачу текстом.');
+      textInput.focus();
     }else{
-      showToast('Не удалось распознать голос');
+      showToast('Голос недоступен. Введите задачу текстом.');
+      textInput.focus();
     }
   };
   micBtn.onclick = () => {
@@ -939,10 +946,11 @@ function importTasksFromJson(raw){
       if(t && t.id) byId.set(t.id, t);
     }
     tasks=Array.from(byId.values()).map(normalizeTask);
+    tasks.forEach(t=>{cancelNativeAlarm(t);t.alarmEnabled=false;t.alarmTriggered=false;});
     if(!hasNativeAlarm()) tasks.forEach(t=>{t.alarmEnabled=false;t.alarmTriggered=false;});
     saveTasks(tasks);
     render();
-    showToast('Импорт завершён');
+    showToast('Импорт завершён. Будильники отключены.');
   }catch(e){
     showToast('Не удалось прочитать файл');
   }
