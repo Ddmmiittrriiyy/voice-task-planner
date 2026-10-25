@@ -333,9 +333,24 @@ function cleanupTitle(text){
 }
 
 // Главная функция разбора фразы
+function extractAlarmCommand(raw){
+  const lang=getLang();
+  const explicit=lang==='uk'
+    ? /(?:увімкни|включи|активуй|постав)\s+будильник/iu
+    : lang==='en'
+      ? /(?:turn on|enable|activate|set)\s+(?:an?\s+|the\s+)?alarm/iu
+      : /(?:включи|активируй|поставь|заведи)\s+будильник/iu;
+  const direct=raw.match(explicit);
+  if(direct) return {enabled:true,text:raw.replace(direct[0],' ').trim()};
+  // A bare keyword is a command only when it leads the sentence.
+  const bare=lang==='uk' ? /^\s*будильник\s*/iu : lang==='en' ? /^\s*alarm\s*/iu : /^\s*будильник\s*/iu;
+  if(bare.test(raw)) return {enabled:true,text:raw.replace(bare,' ').trim()};
+  return {enabled:false,text:raw};
+}
 function parsePhrase(raw){
   const cfg = currentLangCfg();
-  let working = raw.trim();
+  const alarmCommand=extractAlarmCommand(raw.trim());
+  let working = alarmCommand.text;
   let dateRes = extractDate(working, cfg);
   if(dateRes) working = working.replace(dateRes.matchedText, ' ');
   let timeRes = extractTime(working, cfg);
@@ -344,19 +359,24 @@ function parsePhrase(raw){
   return {
     date: dateRes ? dateRes.iso : toISODate(new Date()),
     time: timeRes ? timeRes.hhmm : null,
-    text: title || raw.trim()
+    text: title || alarmCommand.text.trim() || raw.trim(),
+    activateAlarm: alarmCommand.enabled
   };
 }
 
 /* ---------- Действия с задачами ---------- */
 
-function addTask({date, time, text}){
-  const task = { id: uid(), date, time, text, done: false, alarmEnabled: false, alarmTriggered: false, createdAt: Date.now() };
+function addTask({date, time, text, activateAlarm=false}){
+  const at = date && time ? new Date(date+'T'+time+':00').getTime() : NaN;
+  const alarmEnabled = !!activateAlarm && hasNativeAlarm() && Number.isFinite(at) && at>Date.now();
+  const task = { id: uid(), date:date || toISODate(new Date()), time, text, done: false, alarmEnabled, alarmTriggered: false, createdAt: Date.now() };
   tasks.push(task);
   saveTasks(tasks);
+  if(alarmEnabled) scheduleNativeAlarm(task);
   // Порядок задач не меняем: render() по-прежнему сортирует строго по дате/времени.
   // После добавления только прокручиваем экран к новой карточке и кратко подсвечиваем её.
   render({ focusTaskId: task.id });
+  if(activateAlarm && !alarmEnabled) showToast('Для будильника нужно указать будущее время. Задача сохранена.');
   return task;
 }
 function updateTask(id, patch){
@@ -793,7 +813,7 @@ function submitPhrase(raw){
   if(!raw || !raw.trim()) return;
   const parsed = parsePhrase(raw);
   addTask(parsed);
-  showToast(parsed.date ? 'Задача добавлена' : 'Добавлено — уточните дату вручную');
+  if(!parsed.activateAlarm || (parsed.time && taskAlarmTimestamp({...parsed})>Date.now())) showToast('Задача добавлена');
 }
 sendBtn.onclick = () => { submitPhrase(textInput.value); textInput.value=''; };
 textInput.addEventListener('keydown', e=>{
